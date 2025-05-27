@@ -1,0 +1,69 @@
+// SQL table creation strings for initial setup
+
+const createTables = `
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  email VARCHAR(100) UNIQUE NOT NULL,
+  password VARCHAR(255) NOT NULL,
+  profile_picture VARCHAR(255),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS hobbies (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) UNIQUE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS user_hobbies (
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  hobby_id INTEGER REFERENCES hobbies(id) ON DELETE CASCADE,
+  PRIMARY KEY (user_id, hobby_id)
+);
+
+CREATE TABLE IF NOT EXISTS posts (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  image VARCHAR(255),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS post_hobbies (
+  post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
+  hobby_id INTEGER REFERENCES hobbies(id) ON DELETE CASCADE,
+  PRIMARY KEY (post_id, hobby_id)
+);
+
+CREATE TABLE IF NOT EXISTS comments (
+  id SERIAL PRIMARY KEY,
+  post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS likes (
+  id SERIAL PRIMARY KEY,
+  post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS follows (
+  follower_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  following_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  PRIMARY KEY (follower_id, following_id)
+);
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  type VARCHAR(50) NOT NULL,
+  data JSONB,
+  is_read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+`;
+
+module.exports = { createTables }; 
