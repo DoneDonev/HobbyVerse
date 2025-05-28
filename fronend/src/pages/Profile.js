@@ -18,6 +18,7 @@ function Profile() {
   const [followers, setFollowers] = useState([]);
   const fileInputRef = useRef();
   const navigate = useNavigate();
+  const backendUrl = "http://localhost:5000";
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -92,7 +93,7 @@ function Profile() {
       const res = await axios.post('http://localhost:5000/api/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      setProfilePicture(res.data.url);
+      setProfilePicture(res.data.url.startsWith('http') ? res.data.url : backendUrl + res.data.url);
       setSuccess('Image uploaded!');
     } catch (err) {
       setError('Image upload failed.');
@@ -169,7 +170,7 @@ function Profile() {
               {uploading ? 'Uploading...' : 'Upload Image'}
             </button>
             {profilePicture && (
-              <img src={profilePicture} alt="Profile" style={{width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', verticalAlign: 'middle'}} />
+              <img src={profilePicture.startsWith('http') ? profilePicture : backendUrl + profilePicture} alt="Profile" style={{width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', verticalAlign: 'middle'}} />
             )}
           </div>
           <button type="submit">Save</button>
@@ -186,7 +187,7 @@ function Profile() {
           <h4>Users with hobby "{searchHobby}"</h4>
           {foundUsers.map(user => (
             <div key={user.id} style={{display:'flex',alignItems:'center',marginBottom:8}}>
-              <img src={user.profile_picture || 'https://via.placeholder.com/40'} alt="Profile" style={{width:40,height:40,borderRadius:'50%',objectFit:'cover',marginRight:8}} />
+              <img src={user.profile_picture ? (user.profile_picture.startsWith('http') ? user.profile_picture : backendUrl + user.profile_picture) : 'https://via.placeholder.com/40'} alt="Profile" style={{width:40,height:40,borderRadius:'50%',objectFit:'cover',marginRight:8}} />
               <span style={{marginRight:8}}>{user.name}</span>
               {following.includes(user.id) ? (
                 <button onClick={() => handleUnfollow(user.id)} disabled={followLoading[user.id]}>Unfollow</button>
@@ -202,7 +203,7 @@ function Profile() {
         <ul style={{listStyle:'none',padding:0}}>
           {followingDetails.map(u => (
             <li key={u.id} style={{display:'flex',alignItems:'center',marginBottom:8}}>
-              <img src={u.profile_picture || 'https://via.placeholder.com/32'} alt="Profile" style={{width:32,height:32,borderRadius:'50%',objectFit:'cover',marginRight:8}} />
+              <img src={u.profile_picture ? (u.profile_picture.startsWith('http') ? u.profile_picture : backendUrl + u.profile_picture) : 'https://via.placeholder.com/32'} alt="Profile" style={{width:32,height:32,borderRadius:'50%',objectFit:'cover',marginRight:8}} />
               <a href={`#/user/${u.id}`} style={{marginRight:8, color:'#2563eb', textDecoration:'underline'}}>{u.name}</a>
               <button onClick={() => handleUnfollow(u.id)} disabled={followLoading[u.id]}>Unfollow</button>
             </li>
@@ -214,7 +215,7 @@ function Profile() {
         <ul style={{listStyle:'none',padding:0}}>
           {followers.map(u => (
             <li key={u.id} style={{display:'flex',alignItems:'center',marginBottom:8}}>
-              <img src={u.profile_picture || 'https://via.placeholder.com/32'} alt="Profile" style={{width:32,height:32,borderRadius:'50%',objectFit:'cover',marginRight:8}} />
+              <img src={u.profile_picture ? (u.profile_picture.startsWith('http') ? u.profile_picture : backendUrl + u.profile_picture) : 'https://via.placeholder.com/32'} alt="Profile" style={{width:32,height:32,borderRadius:'50%',objectFit:'cover',marginRight:8}} />
               <a href={`#/user/${u.id}`} style={{marginRight:8, color:'#2563eb', textDecoration:'underline'}}>{u.name}</a>
               {following.includes(u.id) ? (
                 <button onClick={() => handleUnfollow(u.id)} disabled={followLoading[u.id]}>Unfollow</button>

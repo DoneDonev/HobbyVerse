@@ -19,7 +19,11 @@ function AuthProvider({ children }) {
   const [token, setToken] = useState(localStorage.getItem('token'));
 
   useEffect(() => {
-    setToken(localStorage.getItem('token'));
+    const handleStorage = () => {
+      setToken(localStorage.getItem('token'));
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
   const login = (newToken) => {
@@ -45,8 +49,8 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
-function NavBar() {
-  const { token, logout } = useAuth();
+function NavBar({ token }) {
+  const { logout } = useAuth();
   const navigate = useNavigate();
   const handleLogout = () => {
     logout();
@@ -55,16 +59,46 @@ function NavBar() {
   return (
     <nav>
       <Link to="/">Home</Link> |{' '}
-      {token ? <>
-        <Link to="/posts">Posts</Link> |{' '}
-        <Link to="/profile">Profile</Link> |{' '}
-        <Link to="/notifications">Notifications</Link> |{' '}
-        <button onClick={handleLogout} style={{background:'none',color:'#2563eb',border:'none',cursor:'pointer',padding:0}}>Logout</button>
-      </> : <>
-        <Link to="/login">Login</Link> |{' '}
-        <Link to="/signup">Sign Up</Link>
-      </>}
+      {token ? (
+        <>
+          <Link to="/posts">Posts</Link> |{' '}
+          <Link to="/profile">Profile</Link> |{' '}
+          <Link to="/notifications">Notifications</Link> |{' '}
+          <button onClick={handleLogout} style={{background:'none',color:'#2563eb',border:'none',cursor:'pointer',padding:0}}>Logout</button>
+        </>
+      ) : (
+        <>
+          <Link to="/login">Login</Link> |{' '}
+          <Link to="/signup">Sign Up</Link>
+        </>
+      )}
     </nav>
+  );
+}
+
+function AppRoutes() {
+  const { token } = useAuth();
+  return (
+    <Routes>
+      {token ? (
+        <>
+          <Route path="/" element={<Home />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/posts" element={<Posts />} />
+          <Route path="/notifications" element={<Notifications />} />
+          <Route path="/user/:id" element={<UserProfile />} />
+          <Route path="/login" element={<Navigate to="/" replace />} />
+          <Route path="/signup" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<NotFound />} />
+        </>
+      ) : (
+        <>
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </>
+      )}
+    </Routes>
   );
 }
 
@@ -72,20 +106,18 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <NavBar />
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-          <Route path="/posts" element={<ProtectedRoute><Posts /></ProtectedRoute>} />
-          <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
-          <Route path="/user/:id" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthConsumerNavBarAndRoutes />
       </Router>
     </AuthProvider>
   );
+}
+
+function AuthConsumerNavBarAndRoutes() {
+  const { token } = useAuth();
+  return <>
+    <NavBar token={token} />
+    <AppRoutes />
+  </>;
 }
 
 export default App;

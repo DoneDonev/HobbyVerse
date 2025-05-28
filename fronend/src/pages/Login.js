@@ -16,7 +16,7 @@ function Login() {
     try {
       const res = await axios.post('http://localhost:5000/api/auth/login', { email, password });
       login(res.data.token);
-      navigate('/profile');
+      navigate('/');
     } catch (err) {
       setError(err.response?.data?.error || 'Login failed');
     }
@@ -37,6 +37,7 @@ function Login() {
         {error && <div style={{color: 'red', marginBottom: '1rem'}}>{error}</div>}
         <button type="submit">Login</button>
       </form>
+      <button style={{marginTop: '1rem'}} onClick={() => navigate('/signup')}>Sign Up</button>
     </div>
   );
 }

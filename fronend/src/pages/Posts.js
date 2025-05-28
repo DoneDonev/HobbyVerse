@@ -24,6 +24,8 @@ function Posts() {
   const [filterHobby, setFilterHobby] = useState('');
   const [searchHobby, setSearchHobby] = useState('');
   const fileInputRef = useRef();
+  const backendUrl = "http://localhost:5000";
+  const [modalImage, setModalImage] = useState(null);
 
   // Fetch posts and counts
   useEffect(() => {
@@ -103,7 +105,7 @@ function Posts() {
       const res = await axios.post('http://localhost:5000/api/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      setImage(res.data.url);
+      setImage(res.data.url.startsWith('http') ? res.data.url : backendUrl + res.data.url);
     } catch (err) {
       setError('Image upload failed.');
     } finally {
@@ -212,7 +214,12 @@ function Posts() {
             {uploading ? 'Uploading...' : 'Upload Image'}
           </button>
           {image && (
-            <img src={image} alt="Post" style={{width: 80, height: 80, borderRadius: 8, objectFit: 'cover', verticalAlign: 'middle'}} />
+            <img
+              src={image.startsWith('http') ? image : backendUrl + image}
+              alt="Post"
+              style={{width: 128, height: 72, borderRadius: 8, objectFit: 'cover', aspectRatio: '16/9', cursor: 'pointer', verticalAlign: 'middle'}}
+              onClick={() => setModalImage(image.startsWith('http') ? image : backendUrl + image)}
+            />
           )}
         </div>
         <div>
@@ -227,7 +234,14 @@ function Posts() {
             posts.map(post => (
               <div key={post.id} style={{border:'1px solid #eee',borderRadius:8,padding:'1rem',marginBottom:'1rem',background:'#fafbfc'}}>
                 <div style={{fontWeight:600,marginBottom:4}}>{post.content}</div>
-                {post.image && <img src={post.image} alt="Post" style={{width: '100%', maxWidth: 320, borderRadius: 8, marginBottom: 8, marginTop: 8}} />}
+                {post.image && (
+                  <img
+                    src={post.image.startsWith('http') ? post.image : backendUrl + post.image}
+                    alt="Post"
+                    style={{width: '100%', maxWidth: 320, height: 180, borderRadius: 8, marginBottom: 8, marginTop: 8, objectFit: 'cover', aspectRatio: '16/9', cursor: 'pointer'}}
+                    onClick={() => setModalImage(post.image.startsWith('http') ? post.image : backendUrl + post.image)}
+                  />
+                )}
                 <div style={{fontSize:12, color:'#888'}}>Posted on {new Date(post.created_at).toLocaleString()}</div>
                 <div style={{marginTop:8, display:'flex', alignItems:'center', gap:8}}>
                   <button
@@ -268,6 +282,38 @@ function Posts() {
               </div>
             ))
           )}
+        </div>
+      )}
+      {/* Modal for full image view */}
+      {modalImage && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            background: 'rgba(0,0,0,0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}
+          onClick={() => setModalImage(null)}
+        >
+          <img
+            src={modalImage}
+            alt="Full Post"
+            style={{
+              maxWidth: '90vw',
+              maxHeight: '90vh',
+              borderRadius: 12,
+              boxShadow: '0 4px 32px rgba(0,0,0,0.5)',
+              background: '#fff',
+              padding: 8
+            }}
+            onClick={e => e.stopPropagation()}
+          />
         </div>
       )}
     </div>

@@ -13,6 +13,7 @@ function UserProfile() {
   const [postsLoading, setPostsLoading] = useState(true);
   const [postsError, setPostsError] = useState('');
   const navigate = useNavigate();
+  const backendUrl = "http://localhost:5000";
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -87,7 +88,7 @@ function UserProfile() {
       {user && (
         <>
           <h2>{user.name}</h2>
-          <img src={user.profile_picture || 'https://via.placeholder.com/80'} alt="Profile" style={{width:80,height:80,borderRadius:'50%',objectFit:'cover',marginBottom:16}} />
+          <img src={user.profile_picture ? (user.profile_picture.startsWith('http') ? user.profile_picture : backendUrl + user.profile_picture) : 'https://via.placeholder.com/80'} alt="Profile" style={{width:80,height:80,borderRadius:'50%',objectFit:'cover',marginBottom:16}} />
           <div style={{marginBottom:16}}>
             {following ? (
               <button onClick={handleUnfollow} disabled={followLoading}>Unfollow</button>
@@ -102,7 +103,7 @@ function UserProfile() {
               posts.map(post => (
                 <div key={post.id} style={{border:'1px solid #eee',borderRadius:8,padding:'1rem',marginBottom:'1rem',background:'#fafbfc'}}>
                   <div style={{fontWeight:600,marginBottom:4}}>{post.content}</div>
-                  {post.image && <img src={post.image} alt="Post" style={{width: '100%', maxWidth: 320, borderRadius: 8, marginBottom: 8, marginTop: 8}} />}
+                  {post.image && <img src={post.image.startsWith('http') ? post.image : backendUrl + post.image} alt="Post" style={{width: '100%', maxWidth: 320, borderRadius: 8, marginBottom: 8, marginTop: 8}} />}
                   <div style={{fontSize:12, color:'#888'}}>Posted on {new Date(post.created_at).toLocaleString()}</div>
                 </div>
               ))
