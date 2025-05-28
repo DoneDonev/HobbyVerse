@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../App';
 
@@ -14,7 +14,7 @@ function Login() {
     e.preventDefault();
     setError('');
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/login', { email, password });
+      const res = await axios.post('http://localhost:5117/api/auth/login', { email, password });
       login(res.data.token);
       navigate('/');
     } catch (err) {
@@ -23,16 +23,44 @@ function Login() {
   };
 
   return (
-    <div className="container">
-      <h2>Login</h2>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Email:</label>
-          <input type="email" name="email" value={email} onChange={e => setEmail(e.target.value)} required />
+    <div className="auth-container">
+      <div className="auth-card">
+        <div className="auth-header">
+          <h2>Log in to HobbyVerse</h2>
         </div>
-        <div>
-          <label>Password:</label>
-          <input type="password" name="password" value={password} onChange={e => setPassword(e.target.value)} required />
+        
+        {error && <div className="error-message">{error}</div>}
+        
+        <form onSubmit={handleSubmit} className="auth-form">
+          <div className="form-group">
+            <label htmlFor="email">Email</label>
+            <input 
+              type="email" 
+              id="email"
+              className="text-input" 
+              value={email} 
+              onChange={e => setEmail(e.target.value)} 
+              required 
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="password">Password</label>
+            <input 
+              type="password" 
+              id="password"
+              className="text-input" 
+              value={password} 
+              onChange={e => setPassword(e.target.value)} 
+              required 
+            />
+          </div>
+          
+          <button type="submit" className="auth-button">Log in</button>
+        </form>
+        
+        <div className="auth-footer">
+          Don't have an account? <Link to="/signup" className="auth-link">Sign up</Link>
         </div>
         {error && <div style={{color: 'red', marginBottom: '1rem'}}>{error}</div>}
         <button type="submit">Login</button>

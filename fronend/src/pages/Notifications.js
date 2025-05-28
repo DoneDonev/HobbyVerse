@@ -31,7 +31,7 @@ function Notifications() {
   const fetchNotifications = async () => {
     setLoading(true);
     try {
-      const res = await axios.get('http://localhost:5000/api/social/notifications', {
+      const res = await axios.get('http://localhost:5117/api/social/notifications', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setNotifications(res.data);
@@ -57,7 +57,7 @@ function Notifications() {
 
   const handleMarkRead = async (id) => {
     try {
-      await axios.post(`http://localhost:5000/api/social/notifications/${id}/read`, {}, {
+      await axios.post(`http://localhost:5117/api/social/notifications/${id}/read`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setNotifications(n => n.map(notif => notif.id === id ? { ...notif, is_read: true } : notif));
