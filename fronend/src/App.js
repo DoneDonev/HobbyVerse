@@ -8,6 +8,7 @@ import Posts from './pages/Posts';
 import Notifications from './pages/Notifications';
 import NotFound from './pages/NotFound';
 import UserProfile from './pages/UserProfile';
+import './styles.css';
 
 // Auth context
 const AuthContext = createContext();
@@ -17,23 +18,46 @@ export function useAuth() {
 
 function AuthProvider({ children }) {
   const [token, setToken] = useState(localStorage.getItem('token'));
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
     setToken(localStorage.getItem('token'));
+    
+    // For demo, simulate a current user
+    if (localStorage.getItem('token')) {
+      setCurrentUser({
+        name: 'John Doe',
+        username: '@johndoe',
+        avatar: 'https://i.pravatar.cc/150?u=johndoe',
+        posts: 24,
+        following: 168,
+        followers: 97
+      });
+    }
   }, []);
 
   const login = (newToken) => {
     localStorage.setItem('token', newToken);
     setToken(newToken);
+    // For demo, simulate a current user
+    setCurrentUser({
+      name: 'John Doe',
+      username: '@johndoe',
+      avatar: 'https://i.pravatar.cc/150?u=johndoe',
+      posts: 24,
+      following: 168,
+      followers: 97
+    });
   };
 
   const logout = () => {
     localStorage.removeItem('token');
     setToken(null);
+    setCurrentUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ token, login, logout }}>
+    <AuthContext.Provider value={{ token, currentUser, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
@@ -48,23 +72,131 @@ function ProtectedRoute({ children }) {
 function NavBar() {
   const { token, logout } = useAuth();
   const navigate = useNavigate();
+  
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
+  
   return (
-    <nav>
-      <Link to="/">Home</Link> |{' '}
-      {token ? <>
-        <Link to="/posts">Posts</Link> |{' '}
-        <Link to="/profile">Profile</Link> |{' '}
-        <Link to="/notifications">Notifications</Link> |{' '}
-        <button onClick={handleLogout} style={{background:'none',color:'#2563eb',border:'none',cursor:'pointer',padding:0}}>Logout</button>
-      </> : <>
-        <Link to="/login">Login</Link> |{' '}
-        <Link to="/signup">Sign Up</Link>
-      </>}
-    </nav>
+    <div className="navbar">
+      <div className="navbar-content">
+        <Link to="/" className="navbar-brand">HobbyVerse</Link>
+        <div className="navbar-links">
+          {token ? (
+            <>
+              <Link to="/posts">Posts</Link>
+              <Link to="/profile">Profile</Link>
+              <Link to="/notifications">Notifications</Link>
+              <button onClick={handleLogout} className="navbar-button">Logout</button>
+            </>
+          ) : (
+            <>
+              <Link to="/login">Login</Link>
+              <Link to="/signup">Sign Up</Link>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Sidebar() {
+  return (
+    <div className="sidebar">
+      <div className="sidebar-nav">
+        <Link to="/" className="sidebar-link">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+          </svg>
+          <span>Home</span>
+        </Link>
+        <Link to="/posts" className="sidebar-link">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="3" y1="9" x2="21" y2="9"></line>
+            <line x1="9" y1="21" x2="9" y2="9"></line>
+          </svg>
+          <span>Feed</span>
+        </Link>
+        <Link to="/notifications" className="sidebar-link">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+          <span>Notifications</span>
+        </Link>
+        <Link to="/profile" className="sidebar-link">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          <span>Profile</span>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function ProfileWidget() {
+  const { currentUser } = useAuth();
+  
+  if (!currentUser) return null;
+  
+  return (
+    <div className="widget profile-widget">
+      <img src={currentUser.avatar} alt="Profile" className="profile-avatar" />
+      <div className="profile-name">{currentUser.name}</div>
+      <div className="profile-username">{currentUser.username}</div>
+      <div className="profile-stats">
+        <div className="profile-stat">
+          <div className="profile-stat-value">{currentUser.posts}</div>
+          <div className="profile-stat-label">Posts</div>
+        </div>
+        <div className="profile-stat">
+          <div className="profile-stat-value">{currentUser.following}</div>
+          <div className="profile-stat-label">Following</div>
+        </div>
+        <div className="profile-stat">
+          <div className="profile-stat-value">{currentUser.followers}</div>
+          <div className="profile-stat-label">Followers</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AppLayout({ children }) {
+  const { token } = useAuth();
+  
+  if (!token) {
+    return children;
+  }
+  
+  return (
+    <>
+      <NavBar />
+      <div className="app-container">
+        <Sidebar />
+        <div className="main-content">
+          {children}
+        </div>
+        <div className="widgets">
+          <ProfileWidget />
+          <div className="widget">
+            <h3 className="widget-header">Trending Hobbies</h3>
+            <div>
+              <div>#painting</div>
+              <div>#chess</div>
+              <div>#gardening</div>
+              <div>#cooking</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -72,17 +204,18 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <NavBar />
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-          <Route path="/posts" element={<ProtectedRoute><Posts /></ProtectedRoute>} />
-          <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
-          <Route path="/user/:id" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AppLayout>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            <Route path="/posts" element={<ProtectedRoute><Posts /></ProtectedRoute>} />
+            <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+            <Route path="/user/:id" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AppLayout>
       </Router>
     </AuthProvider>
   );

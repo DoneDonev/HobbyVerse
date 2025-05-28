@@ -21,7 +21,7 @@ function UserProfile() {
       return;
     }
     // Fetch user info
-    axios.get(`http://localhost:5000/api/user/${id}`, {
+    axios.get(`http://localhost:5117/api/user/${id}`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => {
@@ -33,7 +33,7 @@ function UserProfile() {
         setLoading(false);
       });
     // Check if following
-    axios.get('http://localhost:5000/api/social/following', {
+    axios.get('http://localhost:5117/api/social/following', {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => {
@@ -42,7 +42,7 @@ function UserProfile() {
       .catch(() => setFollowing(false));
     // Fetch user's posts
     setPostsLoading(true);
-    axios.get(`http://localhost:5000/api/posts?user_id=${id}`, {
+    axios.get(`http://localhost:5117/api/posts?user_id=${id}`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => {
@@ -59,7 +59,7 @@ function UserProfile() {
     setFollowLoading(true);
     const token = localStorage.getItem('token');
     try {
-      await axios.post(`http://localhost:5000/api/social/follow/${id}`, {}, {
+      await axios.post(`http://localhost:5117/api/social/follow/${id}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setFollowing(true);
@@ -71,7 +71,7 @@ function UserProfile() {
     setFollowLoading(true);
     const token = localStorage.getItem('token');
     try {
-      await axios.post(`http://localhost:5000/api/social/unfollow/${id}`, {}, {
+      await axios.post(`http://localhost:5117/api/social/unfollow/${id}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setFollowing(false);
