@@ -22,9 +22,20 @@ router.post('/signup', async (req, res) => {
       [name, email, hashedPassword]
     );
     const user = result.rows[0];
-    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.status(201).json({ user, token });
+    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET || 'your_jwt_secret', { expiresIn: '7d' });
+    
+    // Return user object along with token
+    res.status(201).json({ 
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        profile_picture: user.profile_picture
+      } 
+    });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Server error.' });
   }
 });
@@ -45,10 +56,19 @@ router.post('/login', async (req, res) => {
     if (!isMatch) {
       return res.status(400).json({ error: 'Invalid credentials.' });
     }
-    delete user.password;
-    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.json({ user, token });
+    
+    // Create a clean user object without password
+    const userForResponse = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      profile_picture: user.profile_picture
+    };
+    
+    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET || 'your_jwt_secret', { expiresIn: '7d' });
+    res.json({ token, user: userForResponse });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Server error.' });
   }
 });

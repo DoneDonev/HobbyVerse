@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
-import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../App';
+import LetterAvatar from '../components/LetterAvatar';
 
 function Profile() {
+  const { refreshUserStats } = useAuth();
   const [profile, setProfile] = useState(null);
   const [name, setName] = useState('');
   const [profilePicture, setProfilePicture] = useState('');
@@ -21,7 +23,7 @@ function Profile() {
   const [newHobby, setNewHobby] = useState('');
   const fileInputRef = useRef();
   const navigate = useNavigate();
-  const backendUrl = "http://localhost:5000";
+  const backendUrl = "http://localhost:5117";
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -29,7 +31,7 @@ function Profile() {
       navigate('/login');
       return;
     }
-    axios.get('http://localhost:5117/api/user/me', {
+    axios.get(`${backendUrl}/api/user/me`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => {
@@ -45,24 +47,24 @@ function Profile() {
     // Fetch following list (IDs)
     fetchFollowing(token);
     // Fetch following details
-    axios.get('http://localhost:5117/api/social/following/details', {
+    axios.get(`${backendUrl}/api/social/following/details`, {
       headers: { Authorization: `Bearer ${token}` }
     }).then(res => setFollowingDetails(res.data)).catch(() => setFollowingDetails([]));
     // Fetch followers
-    axios.get('http://localhost:5117/api/social/followers/details', {
+    axios.get(`${backendUrl}/api/social/followers/details`, {
       headers: { Authorization: `Bearer ${token}` }
     }).then(res => setFollowers(res.data)).catch(() => setFollowers([]));
     // Fetch hobbies
-    axios.get('http://localhost:5000/api/user/me/hobbies', {
+    axios.get(`${backendUrl}/api/user/me/hobbies`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => setHobbies(res.data))
       .catch(() => setHobbies([]));
-  }, [navigate]);
+  }, [navigate, backendUrl]);
 
   const fetchFollowing = async (token) => {
     try {
-      const res = await axios.get('http://localhost:5117/api/social/following', {
+      const res = await axios.get(`${backendUrl}/api/social/following`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setFollowing(res.data);
@@ -77,7 +79,7 @@ function Profile() {
     setSuccess('');
     const token = localStorage.getItem('token');
     try {
-      const res = await axios.put('http://localhost:5117/api/user/me', {
+      const res = await axios.put(`${backendUrl}/api/user/me`, {
         name,
         profile_picture: profilePicture
       }, {
@@ -99,7 +101,7 @@ function Profile() {
     const formData = new FormData();
     formData.append('file', file);
     try {
-      const res = await axios.post('http://localhost:5117/api/upload', formData, {
+      const res = await axios.post(`${backendUrl}/api/upload`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setProfilePicture(res.data.url.startsWith('http') ? res.data.url : backendUrl + res.data.url);
@@ -117,7 +119,7 @@ function Profile() {
     setFoundUsers([]);
     const token = localStorage.getItem('token');
     try {
-      const res = await axios.get(`http://localhost:5117/api/user/find?hobby=${encodeURIComponent(searchHobby)}`, {
+      const res = await axios.get(`${backendUrl}/api/user/find?hobby=${encodeURIComponent(searchHobby)}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setFoundUsers(res.data);
@@ -130,10 +132,12 @@ function Profile() {
     setFollowLoading(fl => ({ ...fl, [userId]: true }));
     const token = localStorage.getItem('token');
     try {
-      await axios.post(`http://localhost:5117/api/social/follow/${userId}`, {}, {
+      await axios.post(`${backendUrl}/api/social/follow/${userId}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setFollowing(f => [...f, userId]);
+      // Refresh user stats to update following count
+      refreshUserStats();
     } catch {}
     setFollowLoading(fl => ({ ...fl, [userId]: false }));
   };
@@ -142,10 +146,12 @@ function Profile() {
     setFollowLoading(fl => ({ ...fl, [userId]: true }));
     const token = localStorage.getItem('token');
     try {
-      await axios.post(`http://localhost:5117/api/social/unfollow/${userId}`, {}, {
+      await axios.post(`${backendUrl}/api/social/unfollow/${userId}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setFollowing(f => f.filter(id => id !== userId));
+      // Refresh user stats to update following count
+      refreshUserStats();
     } catch {}
     setFollowLoading(fl => ({ ...fl, [userId]: false }));
   };
@@ -156,7 +162,7 @@ function Profile() {
     const token = localStorage.getItem('token');
     if (!newHobby.trim()) return;
     try {
-      const res = await axios.post('http://localhost:5000/api/user/me/hobbies', { hobby: newHobby.trim() }, {
+      const res = await axios.post(`${backendUrl}/api/user/me/hobbies`, { hobby: newHobby.trim() }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setHobbies(res.data);
@@ -170,7 +176,7 @@ function Profile() {
     setError('');
     const token = localStorage.getItem('token');
     try {
-      const res = await axios.delete('http://localhost:5000/api/user/me/hobbies', {
+      const res = await axios.delete(`${backendUrl}/api/user/me/hobbies`, {
         headers: { Authorization: `Bearer ${token}` },
         data: { hobby }
       });
@@ -190,103 +196,6 @@ function Profile() {
       
       {/* Profile Edit Form */}
       {profile && (
-        <form onSubmit={handleSave}>
-          <div>
-            <label>Name:</label>
-            <input type="text" value={name} onChange={e => setName(e.target.value)} required />
-          </div>
-          <div>
-            <label>Profile Picture:</label>
-            <input type="text" value={profilePicture} onChange={e => setProfilePicture(e.target.value)} placeholder="Paste image URL or upload below" />
-          </div>
-          <div style={{marginBottom: '1rem'}}>
-            <input
-              type="file"
-              accept="image/*"
-              ref={fileInputRef}
-              style={{ display: 'none' }}
-              onChange={handleFileChange}
-            />
-            <button type="button" onClick={() => fileInputRef.current.click()} disabled={uploading} style={{marginRight: 8}}>
-              {uploading ? 'Uploading...' : 'Upload Image'}
-            </button>
-            {profilePicture && (
-              <img src={profilePicture.startsWith('http') ? profilePicture : backendUrl + profilePicture} alt="Profile" style={{width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', verticalAlign: 'middle'}} />
-            )}
-          </div>
-          <button type="submit">Save</button>
-        </form>
-      )}
-      <hr style={{margin: '2rem 0'}} />
-      <h3>Find Users by Hobby</h3>
-      <form onSubmit={handleSearch} style={{marginBottom: '1rem'}}>
-        <input type="text" value={searchHobby} onChange={e => setSearchHobby(e.target.value)} placeholder="e.g. chess" />
-        <button type="submit" style={{marginLeft:8}}>Search</button>
-      </form>
-      {foundUsers.length > 0 && (
-        <div style={{marginBottom:'2rem'}}>
-          <h4>Users with hobby "{searchHobby}"</h4>
-          {foundUsers.map(user => (
-            <div key={user.id} style={{display:'flex',alignItems:'center',marginBottom:8}}>
-              <img src={user.profile_picture ? (user.profile_picture.startsWith('http') ? user.profile_picture : backendUrl + user.profile_picture) : 'https://via.placeholder.com/40'} alt="Profile" style={{width:40,height:40,borderRadius:'50%',objectFit:'cover',marginRight:8}} />
-              <span style={{marginRight:8}}>{user.name}</span>
-              {following.includes(user.id) ? (
-                <button onClick={() => handleUnfollow(user.id)} disabled={followLoading[user.id]}>Unfollow</button>
-              ) : (
-                <button onClick={() => handleFollow(user.id)} disabled={followLoading[user.id]}>Follow</button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-      <h3>Following</h3>
-      {followingDetails.length === 0 ? <div>You are not following anyone.</div> : (
-        <ul style={{listStyle:'none',padding:0}}>
-          {followingDetails.map(u => (
-            <li key={u.id} style={{display:'flex',alignItems:'center',marginBottom:8}}>
-              <img src={u.profile_picture ? (u.profile_picture.startsWith('http') ? u.profile_picture : backendUrl + u.profile_picture) : 'https://via.placeholder.com/32'} alt="Profile" style={{width:32,height:32,borderRadius:'50%',objectFit:'cover',marginRight:8}} />
-              <a href={`#/user/${u.id}`} style={{marginRight:8, color:'#2563eb', textDecoration:'underline'}}>{u.name}</a>
-              <button onClick={() => handleUnfollow(u.id)} disabled={followLoading[u.id]}>Unfollow</button>
-            </li>
-          ))}
-        </ul>
-      )}
-      <h3>Followers</h3>
-      {followers.length === 0 ? <div>You have no followers yet.</div> : (
-        <ul style={{listStyle:'none',padding:0}}>
-          {followers.map(u => (
-            <li key={u.id} style={{display:'flex',alignItems:'center',marginBottom:8}}>
-              <img src={u.profile_picture ? (u.profile_picture.startsWith('http') ? u.profile_picture : backendUrl + u.profile_picture) : 'https://via.placeholder.com/32'} alt="Profile" style={{width:32,height:32,borderRadius:'50%',objectFit:'cover',marginRight:8}} />
-              <a href={`#/user/${u.id}`} style={{marginRight:8, color:'#2563eb', textDecoration:'underline'}}>{u.name}</a>
-              {following.includes(u.id) ? (
-                <button onClick={() => handleUnfollow(u.id)} disabled={followLoading[u.id]}>Unfollow</button>
-              ) : (
-                <button onClick={() => handleFollow(u.id)} disabled={followLoading[u.id]}>Follow</button>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-      {/* Hobbies management */}
-      {!loading && (
-        <div style={{marginBottom:'2rem'}}>
-          <h3>Your Hobbies</h3>
-          {hobbies.length === 0 ? <div>You have not added any hobbies yet.</div> : (
-            <ul style={{listStyle:'none',padding:0,marginBottom:8}}>
-              {hobbies.map(hobby => (
-                <li key={hobby} style={{display:'flex',alignItems:'center',marginBottom:4}}>
-                  <span style={{marginRight:8}}>{hobby}</span>
-                  <button type="button" onClick={() => handleRemoveHobby(hobby)} style={{color:'#b91c1c'}}>Remove</button>
-                </li>
-              ))}
-            </ul>
-          )}
-          <form onSubmit={handleAddHobby} style={{display:'flex',alignItems:'center',gap:8}}>
-            <input type="text" value={newHobby} onChange={e => setNewHobby(e.target.value)} placeholder="Add a new hobby" />
-            <button type="submit">Add Hobby</button>
-          </form>
-        </div>
-      )}
         <div className="post-creator">
           <div className="post-creator-header">Edit Profile</div>
           <form onSubmit={handleSave}>
@@ -330,7 +239,7 @@ function Profile() {
               </button>
               {profilePicture && (
                 <img 
-                  src={profilePicture} 
+                  src={profilePicture.startsWith('http') ? profilePicture : backendUrl + profilePicture} 
                   alt="Profile" 
                   className="profile-image-preview" 
                 />
@@ -340,6 +249,41 @@ function Profile() {
             <button type="submit" className="post-creator-submit">Save Profile</button>
           </form>
         </div>
+      )}
+
+      {/* Hobbies management */}
+      <div className="widget">
+        <h3 className="widget-header">Your Hobbies</h3>
+        {hobbies.length === 0 ? (
+          <div className="empty-state">You have not added any hobbies yet.</div>
+        ) : (
+          <div className="user-list">
+            {hobbies.map(hobby => (
+              <div key={hobby} className="user-item">
+                <span className="hobby-tag">#{hobby}</span>
+                <button 
+                  type="button" 
+                  onClick={() => handleRemoveHobby(hobby)}
+                  className="follow-button following"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        
+        <form onSubmit={handleAddHobby} className="search-form" style={{marginTop: '15px'}}>
+          <input 
+            type="text" 
+            value={newHobby} 
+            onChange={e => setNewHobby(e.target.value)} 
+            placeholder="Add a new hobby" 
+            className="text-input"
+          />
+          <button type="submit" className="post-creator-submit">Add Hobby</button>
+        </form>
+      </div>
 
       {/* Find Users by Hobby */}
       <div className="widget">
@@ -359,12 +303,18 @@ function Profile() {
             <h4>Users with hobby "{searchHobby}"</h4>
             {foundUsers.map(user => (
               <div key={user.id} className="user-item">
-                <img 
-                  src={user.profile_picture || 'https://i.pravatar.cc/150?img=1'} 
-                  alt="Profile" 
-                  className="user-avatar" 
-                />
-                <span className="user-name">{user.name}</span>
+                <Link to={`/user/${user.id}`} className="user-name" style={{display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none', color: 'inherit'}}>
+                  {user.profile_picture ? (
+                    <img 
+                      src={user.profile_picture.startsWith('http') ? user.profile_picture : backendUrl + user.profile_picture} 
+                      alt="Profile" 
+                      className="user-avatar" 
+                    />
+                  ) : (
+                    <LetterAvatar name={user.name} size="40px" textSize="18px" />
+                  )}
+                  <span>{user.name}</span>
+                </Link>
                 {following.includes(user.id) ? (
                   <button 
                     onClick={() => handleUnfollow(user.id)} 
@@ -398,11 +348,15 @@ function Profile() {
             <div className="user-list">
               {followingDetails.map(u => (
                 <div key={u.id} className="user-item">
-                  <img 
-                    src={u.profile_picture || 'https://i.pravatar.cc/150?img=2'} 
-                    alt="Profile" 
-                    className="user-avatar" 
-                  />
+                  {u.profile_picture ? (
+                    <img 
+                      src={u.profile_picture.startsWith('http') ? u.profile_picture : backendUrl + u.profile_picture} 
+                      alt="Profile" 
+                      className="user-avatar" 
+                    />
+                  ) : (
+                    <LetterAvatar name={u.name} size="40px" textSize="18px" />
+                  )}
                   <Link to={`/user/${u.id}`} className="user-name">{u.name}</Link>
                   <button 
                     onClick={() => handleUnfollow(u.id)} 
@@ -425,11 +379,15 @@ function Profile() {
             <div className="user-list">
               {followers.map(u => (
                 <div key={u.id} className="user-item">
-                  <img 
-                    src={u.profile_picture || 'https://i.pravatar.cc/150?img=3'} 
-                    alt="Profile" 
-                    className="user-avatar" 
-                  />
+                  {u.profile_picture ? (
+                    <img 
+                      src={u.profile_picture.startsWith('http') ? u.profile_picture : backendUrl + u.profile_picture} 
+                      alt="Profile" 
+                      className="user-avatar" 
+                    />
+                  ) : (
+                    <LetterAvatar name={u.name} size="40px" textSize="18px" />
+                  )}
                   <Link to={`/user/${u.id}`} className="user-name">{u.name}</Link>
                   {following.includes(u.id) ? (
                     <button 

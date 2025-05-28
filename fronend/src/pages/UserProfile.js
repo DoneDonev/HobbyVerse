@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import LetterAvatar from '../components/LetterAvatar';
 
 function UserProfile() {
   const { id } = useParams();
@@ -13,7 +14,7 @@ function UserProfile() {
   const [postsLoading, setPostsLoading] = useState(true);
   const [postsError, setPostsError] = useState('');
   const navigate = useNavigate();
-  const backendUrl = "http://localhost:5000";
+  const backendUrl = "http://localhost:5117";
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -22,7 +23,7 @@ function UserProfile() {
       return;
     }
     // Fetch user info
-    axios.get(`http://localhost:5117/api/user/${id}`, {
+    axios.get(`${backendUrl}/api/user/${id}`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => {
@@ -34,7 +35,7 @@ function UserProfile() {
         setLoading(false);
       });
     // Check if following
-    axios.get('http://localhost:5117/api/social/following', {
+    axios.get(`${backendUrl}/api/social/following`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => {
@@ -43,7 +44,7 @@ function UserProfile() {
       .catch(() => setFollowing(false));
     // Fetch user's posts
     setPostsLoading(true);
-    axios.get(`http://localhost:5117/api/posts?user_id=${id}`, {
+    axios.get(`${backendUrl}/api/posts?user_id=${id}`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => {
@@ -60,7 +61,7 @@ function UserProfile() {
     setFollowLoading(true);
     const token = localStorage.getItem('token');
     try {
-      await axios.post(`http://localhost:5117/api/social/follow/${id}`, {}, {
+      await axios.post(`${backendUrl}/api/social/follow/${id}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setFollowing(true);
@@ -72,7 +73,7 @@ function UserProfile() {
     setFollowLoading(true);
     const token = localStorage.getItem('token');
     try {
-      await axios.post(`http://localhost:5117/api/social/unfollow/${id}`, {}, {
+      await axios.post(`${backendUrl}/api/social/unfollow/${id}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setFollowing(false);
@@ -88,12 +89,22 @@ function UserProfile() {
       {user && (
         <>
           <h2>{user.name}</h2>
-          <img src={user.profile_picture ? (user.profile_picture.startsWith('http') ? user.profile_picture : backendUrl + user.profile_picture) : 'https://via.placeholder.com/80'} alt="Profile" style={{width:80,height:80,borderRadius:'50%',objectFit:'cover',marginBottom:16}} />
+          {user.profile_picture ? (
+            <img 
+              src={user.profile_picture.startsWith('http') ? user.profile_picture : `${backendUrl}${user.profile_picture}`} 
+              alt="Profile" 
+              style={{width:80,height:80,borderRadius:'50%',objectFit:'cover',marginBottom:16}} 
+            />
+          ) : (
+            <div style={{marginBottom:16}}>
+              <LetterAvatar name={user.name} size="80px" textSize="32px" />
+            </div>
+          )}
           <div style={{marginBottom:16}}>
             {following ? (
-              <button onClick={handleUnfollow} disabled={followLoading}>Unfollow</button>
+              <button onClick={handleUnfollow} disabled={followLoading} className="follow-button following profile-unfollow-btn">Unfollow</button>
             ) : (
-              <button onClick={handleFollow} disabled={followLoading}>Follow</button>
+              <button onClick={handleFollow} disabled={followLoading} className="follow-button">Follow</button>
             )}
           </div>
           <hr style={{margin:'2rem 0'}} />
@@ -103,7 +114,7 @@ function UserProfile() {
               posts.map(post => (
                 <div key={post.id} style={{border:'1px solid #eee',borderRadius:8,padding:'1rem',marginBottom:'1rem',background:'#fafbfc'}}>
                   <div style={{fontWeight:600,marginBottom:4}}>{post.content}</div>
-                  {post.image && <img src={post.image.startsWith('http') ? post.image : backendUrl + post.image} alt="Post" style={{width: '100%', maxWidth: 320, borderRadius: 8, marginBottom: 8, marginTop: 8}} />}
+                  {post.image && <img src={post.image.startsWith('http') ? post.image : `${backendUrl}${post.image}`} alt="Post" style={{width: '100%', maxWidth: 320, borderRadius: 8, marginBottom: 8, marginTop: 8}} />}
                   <div style={{fontSize:12, color:'#888'}}>Posted on {new Date(post.created_at).toLocaleString()}</div>
                 </div>
               ))

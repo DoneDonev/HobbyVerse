@@ -2,21 +2,24 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../App';
 import { Link } from 'react-router-dom';
+import LetterAvatar from '../components/LetterAvatar';
 
 function Notifications() {
-  const { token } = useAuth();
+  const { token, refreshUserStats } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [following, setFollowing] = useState([]);
   const [userCache, setUserCache] = useState({});
+  const [followLoading, setFollowLoading] = useState({});
+  const backendUrl = "http://localhost:5117";
 
   useEffect(() => {
     fetchNotifications();
     // Fetch following list for follow-back logic
     const fetchFollowing = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/social/following', {
+        const res = await axios.get(`${backendUrl}/api/social/following`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setFollowing(res.data);
@@ -26,17 +29,29 @@ function Notifications() {
     };
     if (token) fetchFollowing();
     // eslint-disable-next-line
-  }, [token]);
+  }, [token, backendUrl]);
 
   const fetchNotifications = async () => {
     setLoading(true);
     try {
-      const res = await axios.get('http://localhost:5117/api/social/notifications', {
+      const res = await axios.get(`${backendUrl}/api/social/notifications`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setNotifications(res.data);
+      
+      // Pre-fetch user data for all notifications
+      const userIds = res.data
+        .filter(notif => notif.type === 'follow' && notif.data?.from)
+        .map(notif => notif.data.from);
+      
+      // Deduplicate user IDs
+      const uniqueUserIds = [...new Set(userIds)];
+      
+      // Fetch user data for all unique user IDs
+      await Promise.all(uniqueUserIds.map(fetchUser));
+      
       setLoading(false);
-    } catch {
+    } catch (err) {
       setError('Failed to load notifications.');
       setLoading(false);
     }
@@ -45,94 +60,201 @@ function Notifications() {
   const fetchUser = async (userId) => {
     if (userCache[userId]) return userCache[userId];
     try {
-      const res = await axios.get(`http://localhost:5000/api/user/${userId}`, {
+      const res = await axios.get(`${backendUrl}/api/user/${userId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setUserCache(cache => ({ ...cache, [userId]: res.data }));
       return res.data;
-    } catch {
+    } catch (err) {
+      console.error(`Error fetching user ${userId}:`, err);
       return null;
     }
   };
 
   const handleMarkRead = async (id) => {
     try {
-      await axios.post(`http://localhost:5117/api/social/notifications/${id}/read`, {}, {
+      await axios.post(`${backendUrl}/api/social/notifications/${id}/read`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setNotifications(n => n.map(notif => notif.id === id ? { ...notif, is_read: true } : notif));
-    } catch {
+    } catch (err) {
       setError('Failed to mark as read.');
     }
   };
 
   const handleFollowBack = async (userId) => {
+    setFollowLoading(prev => ({ ...prev, [userId]: true }));
     try {
-      await axios.post(`http://localhost:5000/api/social/follow/${userId}`, {}, {
+      await axios.post(`${backendUrl}/api/social/follow/${userId}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setFollowing(f => [...f, userId]);
-    } catch {}
+      // Refresh user stats
+      refreshUserStats();
+    } catch (err) {
+      setError('Failed to follow user.');
+    } finally {
+      setFollowLoading(prev => ({ ...prev, [userId]: false }));
+    }
   };
 
-  const renderText = (notif) => {
-    if (notif.type === 'like') return `Someone liked your post (ID: ${notif.data?.postId})`;
-    if (notif.type === 'comment') return `Someone commented on your post (ID: ${notif.data?.postId})`;
+  const handleUnfollow = async (userId) => {
+    setFollowLoading(prev => ({ ...prev, [userId]: true }));
+    try {
+      await axios.post(`${backendUrl}/api/social/unfollow/${userId}`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setFollowing(f => f.filter(id => id !== userId));
+      // Refresh user stats
+      refreshUserStats();
+    } catch (err) {
+      setError('Failed to unfollow user.');
+    } finally {
+      setFollowLoading(prev => ({ ...prev, [userId]: false }));
+    }
+  };
+
+  const renderNotification = (notif) => {
+    if (notif.type === 'like' && notif.data?.postId) {
+      return (
+        <div className="notification-content">
+          <div className="notification-text">
+            <span className="notification-action">Someone liked your post</span>
+            <Link to={`/posts/${notif.data.postId}`} className="notification-link">
+              View post
+            </Link>
+          </div>
+        </div>
+      );
+    }
+    
+    if (notif.type === 'comment' && notif.data?.postId) {
+      return (
+        <div className="notification-content">
+          <div className="notification-text">
+            <span className="notification-action">Someone commented on your post</span>
+            <Link to={`/posts/${notif.data.postId}`} className="notification-link">
+              View post
+            </Link>
+          </div>
+        </div>
+      );
+    }
+    
     if (notif.type === 'follow' && notif.data?.from) {
       const userId = notif.data.from;
       const user = userCache[userId];
+      
       if (user) {
+        const isFollowing = following.includes(userId);
+        const isLoading = followLoading[userId] || false;
+        
         return (
-          <>
-            <span>
-              <Link to={`/user/${user.id}`} style={{ color: '#2563eb', textDecoration: 'underline' }}>
-                {user.name}
-              </Link> followed you.
-            </span>
-            {!following.includes(user.id) && (
-              <button style={{marginLeft:8}} onClick={() => handleFollowBack(user.id)}>Follow back</button>
-            )}
-          </>
+          <div className="notification-content">
+            <div className="notification-user">
+              {user.profile_picture ? (
+                <img 
+                  src={user.profile_picture.startsWith('http') ? user.profile_picture : `${backendUrl}${user.profile_picture}`}
+                  alt={user.name}
+                  className="notification-avatar"
+                />
+              ) : (
+                <div className="notification-avatar-container">
+                  <LetterAvatar name={user.name} />
+                </div>
+              )}
+              <div className="notification-details">
+                <div className="notification-text">
+                  <Link to={`/user/${userId}`} className="notification-username">
+                    {user.name}
+                  </Link>
+                  <span className="notification-action"> started following you</span>
+                </div>
+                
+                <div className="notification-actions">
+                  <Link to={`/user/${userId}`} className="notification-link">
+                    View profile
+                  </Link>
+                  
+                  {isFollowing ? (
+                    <button 
+                      onClick={() => handleUnfollow(userId)}
+                      disabled={isLoading}
+                      className="follow-button following"
+                    >
+                      {isLoading ? 'Loading...' : 'Unfollow'}
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={() => handleFollowBack(userId)}
+                      disabled={isLoading}
+                      className="follow-button"
+                    >
+                      {isLoading ? 'Loading...' : 'Follow back'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         );
       } else {
-        // If not loaded yet, trigger fetch
-        fetchUser(userId);
-        return 'Someone followed you!';
+        // If user data isn't loaded yet
+        return (
+          <div className="notification-content">
+            <div className="notification-text">
+              <span className="notification-action">Someone followed you</span>
+            </div>
+          </div>
+        );
       }
     }
-    if (notif.type === 'follow') return `Someone followed you!`;
-    return notif.type;
+    
+    return (
+      <div className="notification-content">
+        <div className="notification-text">
+          <span className="notification-action">{notif.type}</span>
+        </div>
+      </div>
+    );
   };
 
   return (
-    <div className="container">
+    <div>
       <h2>Notifications</h2>
-      {error && <div style={{color: 'red', marginBottom: '1rem'}}>{error}</div>}
-      {loading ? <div>Loading...</div> : (
-        <div>
-          {notifications.length === 0 ? <div>No notifications.</div> : (
-            notifications.map(notif => (
-              <div
-                key={notif.id}
-                style={{
-                  background: notif.is_read ? '#f7f7f7' : '#e0e7ff',
-                  border: '1px solid #eee',
-                  borderRadius: 8,
-                  padding: '1rem',
-                  marginBottom: '1rem',
-                  opacity: notif.is_read ? 0.7 : 1
-                }}
-              >
-                <div>{renderText(notif)}</div>
-                <div style={{fontSize:12, color:'#888'}}>{new Date(notif.created_at).toLocaleString()}</div>
+      {error && <div className="error-message">{error}</div>}
+      
+      <div className="notifications-container">
+        {loading ? (
+          <div className="loading">Loading notifications...</div>
+        ) : notifications.length === 0 ? (
+          <div className="empty-state">You have no notifications.</div>
+        ) : (
+          notifications.map(notif => (
+            <div
+              key={notif.id}
+              className={`notification ${notif.is_read ? 'read' : 'unread'}`}
+            >
+              {renderNotification(notif)}
+              
+              <div className="notification-footer">
+                <div className="notification-time">
+                  {new Date(notif.created_at).toLocaleString()}
+                </div>
+                
                 {!notif.is_read && (
-                  <button style={{marginTop:8}} onClick={() => handleMarkRead(notif.id)}>Mark as read</button>
+                  <button 
+                    className="mark-read-button"
+                    onClick={() => handleMarkRead(notif.id)}
+                  >
+                    Mark as read
+                  </button>
                 )}
               </div>
-            ))
-          )}
-        </div>
-      )}
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 }

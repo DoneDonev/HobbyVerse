@@ -147,6 +147,38 @@ router.post('/likes-count', authenticateToken, async (req, res) => {
   }
 });
 
+// Get a single post by ID
+router.get('/:id', authenticateToken, async (req, res) => {
+  const postId = req.params.id;
+  try {
+    // Get post with hobby information
+    const postResult = await pool.query(
+      `SELECT p.*, array_agg(h.name) as hobbies
+       FROM posts p
+       LEFT JOIN post_hobbies ph ON p.id = ph.post_id
+       LEFT JOIN hobbies h ON ph.hobby_id = h.id
+       WHERE p.id = $1
+       GROUP BY p.id`,
+      [postId]
+    );
+    
+    if (postResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Post not found.' });
+    }
+    
+    const post = postResult.rows[0];
+    // If no hobbies, set to empty array instead of [null]
+    if (post.hobbies.length === 1 && post.hobbies[0] === null) {
+      post.hobbies = [];
+    }
+    
+    res.json(post);
+  } catch (err) {
+    console.error('Error fetching post:', err);
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
 // Get comment counts for multiple posts
 router.post('/comments-count', authenticateToken, async (req, res) => {
   const { ids } = req.body;

@@ -14,6 +14,37 @@ router.get('/me', authenticateToken, async (req, res) => {
   }
 });
 
+// Get current user's stats (followers, following, posts count)
+router.get('/me/stats', authenticateToken, async (req, res) => {
+  try {
+    // Get followers count
+    const followersResult = await pool.query(
+      'SELECT COUNT(*) as followers FROM follows WHERE following_id = $1',
+      [req.user.id]
+    );
+    
+    // Get following count
+    const followingResult = await pool.query(
+      'SELECT COUNT(*) as following FROM follows WHERE follower_id = $1',
+      [req.user.id]
+    );
+    
+    // Get posts count
+    const postsResult = await pool.query(
+      'SELECT COUNT(*) as posts FROM posts WHERE user_id = $1',
+      [req.user.id]
+    );
+    
+    res.json({
+      followers: parseInt(followersResult.rows[0].followers),
+      following: parseInt(followingResult.rows[0].following),
+      posts: parseInt(postsResult.rows[0].posts)
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
 // Update profile (name, profile picture)
 router.put('/me', authenticateToken, async (req, res) => {
   const { name, profile_picture } = req.body;

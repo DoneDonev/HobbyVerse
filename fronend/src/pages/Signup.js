@@ -16,8 +16,14 @@ function Signup() {
     setError('');
     try {
       const res = await axios.post('http://localhost:5117/api/auth/signup', { name, email, password });
+      
+      // Store user data in localStorage for persistence
+      if (res.data.user) {
+        localStorage.setItem('user', JSON.stringify(res.data.user));
+      }
+      
       login(res.data.token);
-      navigate('/profile');
+      navigate('/');
     } catch (err) {
       setError(err.response?.data?.error || 'Signup failed');
     }
@@ -75,14 +81,7 @@ function Signup() {
         <div className="auth-footer">
           Already have an account? <Link to="/login" className="auth-link">Log in</Link>
         </div>
-        <div>
-          <label>Password:</label>
-          <input type="password" name="password" value={password} onChange={e => setPassword(e.target.value)} required />
-        </div>
-        {error && <div style={{color: 'red', marginBottom: '1rem'}}>{error}</div>}
-        <button type="submit">Sign Up</button>
       </div>
-      <button style={{marginTop: '1rem'}} onClick={() => navigate('/login')}>Cancel</button>
     </div>
   );
 }

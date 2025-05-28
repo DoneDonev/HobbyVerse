@@ -242,10 +242,16 @@ body {
   line-height: 1.5;
 }
 
+/* Original post-image style should be kept minimal since we're now using the aspect ratio container */
 .post-image {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-  border-radius: 12px;
-  margin: 10px 0;
+  height: 100%;
+  object-fit: cover;
+  margin: 0;
+  border-radius: 0;
 }
 
 .post-actions {
@@ -288,16 +294,51 @@ body {
 }
 
 .comment {
-  padding: 10px;
+  padding: 12px;
   border-radius: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   background-color: var(--color-background);
+  display: flex;
+  flex-direction: column;
+}
+
+.comment-header {
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.comment-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.comment-user {
+  font-weight: 700;
+  color: var(--color-text);
+  text-decoration: none;
+  display: inline-block;
+  transition: color 0.2s;
+}
+
+.comment-user:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.comment-content {
+  line-height: 1.4;
+  color: var(--color-text);
+  word-break: break-word;
 }
 
 .comment-input {
   display: flex;
   gap: 10px;
-  margin-top: 10px;
+  margin-top: 15px;
 }
 
 .comment-input input {
@@ -709,4 +750,265 @@ h2 {
 
 .auth-link:hover {
   text-decoration: underline;
+}
+
+/* Notifications */
+.notifications-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 15px;
+}
+
+.notification {
+  background-color: #fff;
+  border-radius: var(--border-radius);
+  padding: 15px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s;
+  border-left: 3px solid transparent;
+}
+
+.notification:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.notification.unread {
+  background-color: rgba(29, 161, 242, 0.1);
+  border-left-color: var(--color-primary);
+}
+
+.notification.read {
+  opacity: 0.8;
+}
+
+.notification-content {
+  margin-bottom: 10px;
+}
+
+.notification-user {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.notification-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.notification-details {
+  flex: 1;
+}
+
+.notification-text {
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.notification-username {
+  color: var(--color-text);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.notification-username:hover {
+  text-decoration: underline;
+  color: var(--color-primary);
+}
+
+.notification-action {
+  color: var(--color-text);
+}
+
+.notification-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.notification-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.notification-link:hover {
+  text-decoration: underline;
+}
+
+.notification-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-border);
+}
+
+.notification-time {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.mark-read-button {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.mark-read-button:hover {
+  background-color: rgba(29, 161, 242, 0.1);
+}
+
+/* Post image with 16:9 aspect ratio */
+.post-image-container {
+  margin: 15px 0;
+  cursor: pointer;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: opacity 0.2s;
+}
+
+.post-image-container:hover {
+  opacity: 0.9;
+}
+
+.post-image-aspect-ratio {
+  position: relative;
+  padding-top: 56.25%; /* 16:9 Aspect Ratio (9 / 16 = 0.5625 or 56.25%) */
+  overflow: hidden;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.post-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  margin: 0;
+}
+
+/* Image Modal */
+.image-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  cursor: zoom-out;
+}
+
+.image-modal-content {
+  position: relative;
+  max-width: 90%;
+  max-height: 90%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.image-modal-img {
+  max-width: 100%;
+  max-height: 90vh;
+  border-radius: 4px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  cursor: default;
+}
+
+.image-modal-close {
+  position: absolute;
+  top: -40px;
+  right: -10px;
+  color: white;
+  font-size: 35px;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 1001;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.image-modal-close:hover {
+  opacity: 1;
+}
+
+/* Post Detail */
+.post-detail-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.post-detail-header h2 {
+  margin-bottom: 0;
+  margin-left: 15px;
+}
+
+.back-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.post-detail {
+  margin-bottom: 30px;
+}
+
+.comments-header {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 15px;
+  padding-top: 15px;
+  border-top: 1px solid var(--color-border);
+}
+
+.no-comments {
+  padding: 15px;
+  text-align: center;
+  color: var(--color-text-secondary);
+  background-color: var(--color-background);
+  border-radius: var(--border-radius);
+}
+
+.profile-avatar-container,
+.notification-avatar-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.profile-unfollow-btn {
+  background-color: #ffebee;
+  color: #c62828;
+  border: 1px solid #c62828;
+  transition: background 0.2s, color 0.2s, border 0.2s;
+}
+
+.profile-unfollow-btn:hover {
+  background-color: #ffcdd2;
+  color: #b71c1c;
+  border-color: #b71c1c;
 } 

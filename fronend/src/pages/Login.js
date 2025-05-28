@@ -15,6 +15,12 @@ function Login() {
     setError('');
     try {
       const res = await axios.post('http://localhost:5117/api/auth/login', { email, password });
+      
+      // Store user data in localStorage for persistence
+      if (res.data.user) {
+        localStorage.setItem('user', JSON.stringify(res.data.user));
+      }
+      
       login(res.data.token);
       navigate('/');
     } catch (err) {
@@ -62,10 +68,7 @@ function Login() {
         <div className="auth-footer">
           Don't have an account? <Link to="/signup" className="auth-link">Sign up</Link>
         </div>
-        {error && <div style={{color: 'red', marginBottom: '1rem'}}>{error}</div>}
-        <button type="submit">Login</button>
       </div>
-      <button style={{marginTop: '1rem'}} onClick={() => navigate('/signup')}>Sign Up</button>
     </div>
   );
 }
