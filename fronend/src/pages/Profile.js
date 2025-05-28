@@ -340,7 +340,6 @@ function Profile() {
             <button type="submit" className="post-creator-submit">Save Profile</button>
           </form>
         </div>
-      )}
 
       {/* Find Users by Hobby */}
       <div className="widget">

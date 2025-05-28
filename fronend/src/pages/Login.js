@@ -64,7 +64,7 @@ function Login() {
         </div>
         {error && <div style={{color: 'red', marginBottom: '1rem'}}>{error}</div>}
         <button type="submit">Login</button>
-      </form>
+      </div>
       <button style={{marginTop: '1rem'}} onClick={() => navigate('/signup')}>Sign Up</button>
     </div>
   );

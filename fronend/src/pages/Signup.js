@@ -81,7 +81,7 @@ function Signup() {
         </div>
         {error && <div style={{color: 'red', marginBottom: '1rem'}}>{error}</div>}
         <button type="submit">Sign Up</button>
-      </form>
+      </div>
       <button style={{marginTop: '1rem'}} onClick={() => navigate('/login')}>Cancel</button>
     </div>
   );
