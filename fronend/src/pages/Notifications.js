@@ -1,15 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../App';
+import { Link } from 'react-router-dom';
 
 function Notifications() {
   const { token } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [following, setFollowing] = useState([]);
+  const [userCache, setUserCache] = useState({});
 
   useEffect(() => {
     fetchNotifications();
+    // Fetch following list for follow-back logic
+    const fetchFollowing = async () => {
+      try {
+        const res = await axios.get('http://localhost:5000/api/social/following', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setFollowing(res.data);
+      } catch {
+        setFollowing([]);
+      }
+    };
+    if (token) fetchFollowing();
     // eslint-disable-next-line
   }, [token]);
 
@@ -27,6 +42,19 @@ function Notifications() {
     }
   };
 
+  const fetchUser = async (userId) => {
+    if (userCache[userId]) return userCache[userId];
+    try {
+      const res = await axios.get(`http://localhost:5000/api/user/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setUserCache(cache => ({ ...cache, [userId]: res.data }));
+      return res.data;
+    } catch {
+      return null;
+    }
+  };
+
   const handleMarkRead = async (id) => {
     try {
       await axios.post(`http://localhost:5000/api/social/notifications/${id}/read`, {}, {
@@ -38,9 +66,40 @@ function Notifications() {
     }
   };
 
+  const handleFollowBack = async (userId) => {
+    try {
+      await axios.post(`http://localhost:5000/api/social/follow/${userId}`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setFollowing(f => [...f, userId]);
+    } catch {}
+  };
+
   const renderText = (notif) => {
     if (notif.type === 'like') return `Someone liked your post (ID: ${notif.data?.postId})`;
     if (notif.type === 'comment') return `Someone commented on your post (ID: ${notif.data?.postId})`;
+    if (notif.type === 'follow' && notif.data?.from) {
+      const userId = notif.data.from;
+      const user = userCache[userId];
+      if (user) {
+        return (
+          <>
+            <span>
+              <Link to={`/user/${user.id}`} style={{ color: '#2563eb', textDecoration: 'underline' }}>
+                {user.name}
+              </Link> followed you.
+            </span>
+            {!following.includes(user.id) && (
+              <button style={{marginLeft:8}} onClick={() => handleFollowBack(user.id)}>Follow back</button>
+            )}
+          </>
+        );
+      } else {
+        // If not loaded yet, trigger fetch
+        fetchUser(userId);
+        return 'Someone followed you!';
+      }
+    }
     if (notif.type === 'follow') return `Someone followed you!`;
     return notif.type;
   };

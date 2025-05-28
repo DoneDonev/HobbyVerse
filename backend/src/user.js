@@ -57,4 +57,66 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// Get current user's hobbies
+router.get('/me/hobbies', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT h.name FROM hobbies h
+       JOIN user_hobbies uh ON h.id = uh.hobby_id
+       WHERE uh.user_id = $1`,
+      [req.user.id]
+    );
+    res.json(result.rows.map(r => r.name));
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// Add a hobby to current user
+router.post('/me/hobbies', authenticateToken, async (req, res) => {
+  const { hobby } = req.body;
+  if (!hobby) return res.status(400).json({ error: 'Hobby is required.' });
+  try {
+    let hobbyResult = await pool.query('SELECT id FROM hobbies WHERE name = $1', [hobby]);
+    let hobbyId;
+    if (hobbyResult.rows.length === 0) {
+      hobbyResult = await pool.query('INSERT INTO hobbies (name) VALUES ($1) RETURNING id', [hobby]);
+    }
+    hobbyId = hobbyResult.rows[0].id;
+    await pool.query('INSERT INTO user_hobbies (user_id, hobby_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [req.user.id, hobbyId]);
+    // Return updated list
+    const result = await pool.query(
+      `SELECT h.name FROM hobbies h
+       JOIN user_hobbies uh ON h.id = uh.hobby_id
+       WHERE uh.user_id = $1`,
+      [req.user.id]
+    );
+    res.json(result.rows.map(r => r.name));
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// Remove a hobby from current user
+router.delete('/me/hobbies', authenticateToken, async (req, res) => {
+  const { hobby } = req.body;
+  if (!hobby) return res.status(400).json({ error: 'Hobby is required.' });
+  try {
+    const hobbyResult = await pool.query('SELECT id FROM hobbies WHERE name = $1', [hobby]);
+    if (hobbyResult.rows.length === 0) return res.status(404).json({ error: 'Hobby not found.' });
+    const hobbyId = hobbyResult.rows[0].id;
+    await pool.query('DELETE FROM user_hobbies WHERE user_id = $1 AND hobby_id = $2', [req.user.id, hobbyId]);
+    // Return updated list
+    const result = await pool.query(
+      `SELECT h.name FROM hobbies h
+       JOIN user_hobbies uh ON h.id = uh.hobby_id
+       WHERE uh.user_id = $1`,
+      [req.user.id]
+    );
+    res.json(result.rows.map(r => r.name));
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
 module.exports = router; 
