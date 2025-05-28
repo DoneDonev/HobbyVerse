@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { useAuth } from '../App';
+import { Link } from 'react-router-dom';
 
 function Posts() {
   const { token } = useAuth();
@@ -263,7 +264,11 @@ function Posts() {
                     <div>
                       {(comments[post.id] || []).map(c => (
                         <div key={c.id} style={{borderBottom:'1px solid #eee',padding:'4px 0'}}>
-                          <span style={{fontWeight:500}}>{c.name || 'User'}:</span> {c.content}
+                          <span style={{fontWeight:500}}>
+                            <Link to={`/user/${c.user_id}`} style={{ color: '#2563eb', textDecoration: 'underline' }}>
+                              {c.name || 'User'}
+                            </Link>:
+                          </span> {c.content}
                         </div>
                       ))}
                     </div>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 function Profile() {
   const [profile, setProfile] = useState(null);
@@ -16,6 +16,8 @@ function Profile() {
   const [followLoading, setFollowLoading] = useState({});
   const [followingDetails, setFollowingDetails] = useState([]);
   const [followers, setFollowers] = useState([]);
+  const [hobbies, setHobbies] = useState([]);
+  const [newHobby, setNewHobby] = useState('');
   const fileInputRef = useRef();
   const navigate = useNavigate();
   const backendUrl = "http://localhost:5000";
@@ -49,6 +51,12 @@ function Profile() {
     axios.get('http://localhost:5000/api/social/followers/details', {
       headers: { Authorization: `Bearer ${token}` }
     }).then(res => setFollowers(res.data)).catch(() => setFollowers([]));
+    // Fetch hobbies
+    axios.get('http://localhost:5000/api/user/me/hobbies', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => setHobbies(res.data))
+      .catch(() => setHobbies([]));
   }, [navigate]);
 
   const fetchFollowing = async (token) => {
@@ -141,6 +149,36 @@ function Profile() {
     setFollowLoading(fl => ({ ...fl, [userId]: false }));
   };
 
+  const handleAddHobby = async (e) => {
+    e.preventDefault();
+    setError('');
+    const token = localStorage.getItem('token');
+    if (!newHobby.trim()) return;
+    try {
+      const res = await axios.post('http://localhost:5000/api/user/me/hobbies', { hobby: newHobby.trim() }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setHobbies(res.data);
+      setNewHobby('');
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to add hobby.');
+    }
+  };
+
+  const handleRemoveHobby = async (hobby) => {
+    setError('');
+    const token = localStorage.getItem('token');
+    try {
+      const res = await axios.delete('http://localhost:5000/api/user/me/hobbies', {
+        headers: { Authorization: `Bearer ${token}` },
+        data: { hobby }
+      });
+      setHobbies(res.data);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to remove hobby.');
+    }
+  };
+
   if (loading) return <div className="container">Loading...</div>;
 
   return (
@@ -225,6 +263,26 @@ function Profile() {
             </li>
           ))}
         </ul>
+      )}
+      {/* Hobbies management */}
+      {!loading && (
+        <div style={{marginBottom:'2rem'}}>
+          <h3>Your Hobbies</h3>
+          {hobbies.length === 0 ? <div>You have not added any hobbies yet.</div> : (
+            <ul style={{listStyle:'none',padding:0,marginBottom:8}}>
+              {hobbies.map(hobby => (
+                <li key={hobby} style={{display:'flex',alignItems:'center',marginBottom:4}}>
+                  <span style={{marginRight:8}}>{hobby}</span>
+                  <button type="button" onClick={() => handleRemoveHobby(hobby)} style={{color:'#b91c1c'}}>Remove</button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <form onSubmit={handleAddHobby} style={{display:'flex',alignItems:'center',gap:8}}>
+            <input type="text" value={newHobby} onChange={e => setNewHobby(e.target.value)} placeholder="Add a new hobby" />
+            <button type="submit">Add Hobby</button>
+          </form>
+        </div>
       )}
     </div>
   );
